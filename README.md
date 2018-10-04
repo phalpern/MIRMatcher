@@ -31,6 +31,22 @@ what was presented at CppCon (mostly some class names were changed). At this
 point, it should be considered a toy, for educational purposes. Eventually,
 Pablo hopes to upstream the component into the LLVM mainline.**
 
+## Installation
+
+Use this library by merging this repository with a fork of the LLVM
+repository. Alternatively, simply copy the files into the corresponding
+subdirectories of the LLVM source tree.
+
+In order to build the MIRMatcherTests target, you will need to add the
+following lines to the `unittests/CMakeLists.txt` file:
+
+    if(";${LLVM_TARGETS_TO_BUILD};" MATCHES ";X86;")
+    add_subdirectory(Intel_MIRMatcher)
+    endif()
+
+The unit test will not build unless one of the targets being built is X86
+because x86_64 instructions are used in the examples.
+
 ## Usage Example
 
 This example searches for a **multiply** instruction whose output feeds into
