@@ -29,8 +29,7 @@ bool mirmatch::MatchResult::setRegMapping(unsigned localId, unsigned reg)
   if (0 == m_regMap[index]) {
     m_regMap[index] = reg;
     return true;
-  }
-  else
+  } else
     return m_regMap[index] == reg;
 }
 

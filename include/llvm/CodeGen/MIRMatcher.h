@@ -54,6 +54,8 @@ struct TypeListBase {
   static constexpr std::size_t size       = 0;
   static constexpr bool        isEmpty    = true;
 
+  using ListBase = TypeListBase; // Convenient name for use by derived class
+
   template <class Tp> using Predicate = typename Pred<Tp>::type;
 
   using EmptyListType = TypeList<>;
@@ -320,11 +322,10 @@ template <class... Operands>
 struct OperandMatcherList
   : internal::TypeListBase<OperandMatcherList, IsOperandMatcher, Operands...>
 {
-  using ThisType  = OperandMatcherList;
-  using First     = typename ThisType::First;
-  using Rest      = typename ThisType::Rest;
+  using First     = typename ListBase::First;
+  using Rest      = typename ListBase::Rest;
 
-  static_assert(ThisType::hasValidTypes,
+  static_assert(ListBase::hasValidTypes,
                 "All parameters must be operand matchers");
 
   static constexpr auto registers = (First::registers | Rest::registers);
@@ -332,7 +333,7 @@ struct OperandMatcherList
   CONSTEXPR_DEFAULT_CTOR(OperandMatcherList)
 
   template <typename Op, typename Uses>
-  constexpr InstructionMatcher<Op, ThisType, Uses>
+  constexpr InstructionMatcher<Op, OperandMatcherList, Uses>
   operator=(InstructionMatcher<Op, OperandMatcherList<>, Uses>) const
     { return EMPTY_CLASS_INITIALIZER; }
 
@@ -347,8 +348,6 @@ template <>
 struct OperandMatcherList<>
   : internal::TypeListBase<OperandMatcherList, IsOperandMatcher>
 {
-  using ThisType = OperandMatcherList;
-
   static constexpr RegisterSet<> registers{};
 
   CONSTEXPR_DEFAULT_CTOR(OperandMatcherList)
@@ -575,13 +574,10 @@ struct GraphMatcher
   // Combines zero or more code matchers such that, if ALL match, then this
   // matches.
 
-  using ThisType  = GraphMatcher;
-  using Base      =
-    internal::TypeListBase<GraphMatcher, IsPatternMatcher, PatternMatchers...>;
-  using First     = typename Base::First;
-  using Rest      = typename Base::Rest;
+  using First     = typename ListBase::First;
+  using Rest      = typename ListBase::Rest;
 
-  static_assert(ThisType::hasValidTypes,
+  static_assert(ListBase::hasValidTypes,
                 "All parameters must be instruction matchers");
 
   static constexpr auto registers = (First::registers | Rest::registers);
@@ -600,8 +596,6 @@ struct GraphMatcher<>
    : internal::TypeListBase<GraphMatcher, IsPatternMatcher>
 {
   // Specialization for an empty graph.
-
-  using ThisType  = GraphMatcher;
 
   static constexpr RegisterSet<> registers{};
 
@@ -638,13 +632,10 @@ struct AlternativeMatcher
   // matches. This primary template is used for a list of alternatives of length
   // greather than zero.
 
-  using ThisType = AlternativeMatcher;
-  using Base     =
-    internal::TypeListBase<AlternativeMatcher, IsPatternMatcher, PatternMatchers...>;
-  using First    = typename Base::First;
-  using Rest     = typename Base::Rest;
+  using First    = typename ListBase::First;
+  using Rest     = typename ListBase::Rest;
 
-  static_assert(ThisType::hasValidTypes,
+  static_assert(ListBase::hasValidTypes,
                 "All parameters must be instruction matchers");
 
   static constexpr auto registers = (First::registers & Rest::registers);
@@ -664,8 +655,6 @@ struct AlternativeMatcher<>
 {
   // Combines zero or more code matchers such that, if ANY match, then this
   // matches. This specialization template is used for an empty list of alternatives.
-
-  using ThisType = AlternativeMatcher;
 
   static constexpr RegisterSet<~0UL> registers{};
 
@@ -1017,28 +1006,6 @@ bool recursiveMatch(InstrList, MatchedRegisters mregs, MachineRegisterInfo& MRI,
 
   //////////////// Compile-time computations end here //////////////////////
 
-#if 0
-  //////// NEW CODE for GraphMatcher<PatternMatchers...>::iterator::tryMatch //////
-  // Iterate over try attempts. When attempt succeeds, recurse. If recursion
-  // match fails, try next attempt.
-  // For InstructionMatcher, thingsToMatch() simply computes `reg` and returns a
-  // range of iterators to instructions connected to it.  The actual token
-  // type is not important to this algorithm - it is up to each matcher to
-  // define its own. For InstructionMatcher, it's a MachineInstr.
-  for (auto& thing : First::thingsToMatch()) {
-    MatchResult localRslt = rslt;  // Changes are made to local copy of `rslt`
-    if (First::tryMatch(thing, MRI, localRslt) &&
-        recursiveMatch(Rest{}, mregs | FirstInstr::registers, MRI, localRslt))
-    {
-      rslt = std::move(localRslt); // Commit changes to `rslt` on success.
-      return true;
-    }
-    // Changes to `localRslt` are discarded here.
-    // Next iteration starts with a fresh copy of `rslt`.
-  }
-  //////// END NEW CODE /////
-
-#else
   // Get the real register (not the local ID) that was found during earlier
   // matching recurrances.
   unsigned reg = rslt.reg(OperandMatcher{});
@@ -1056,7 +1023,6 @@ bool recursiveMatch(InstrList, MatchedRegisters mregs, MachineRegisterInfo& MRI,
     // Changes to `localRslt` are discarded here.
     // Next iteration starts with a fresh copy of `rslt`.
   }
-#endif
 
   // None of the instructions for `reg` matched. This match failed.
   return false;

@@ -41,7 +41,7 @@ In order to build the MIRMatcherTests target, you will need to add the
 following lines to the `unittests/CMakeLists.txt` file:
 
     if(";${LLVM_TARGETS_TO_BUILD};" MATCHES ";X86;")
-    add_subdirectory(Intel_MIRMatcher)
+    add_subdirectory(MIRMatcher)
     endif()
 
 The unit test will not build unless one of the targets being built is X86
